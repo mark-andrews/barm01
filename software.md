@@ -16,7 +16,6 @@ There are six main pieces of software to install:
     language.
 -   [brms](https://github.com/paul-buerkner/brms): An R package to
     interface with [Stan](http://mc-stan.org/).
--   An ad hoc R package named `priorexposure`.
 
 All of the above installation should be easy and painless except
 possibly for the installation of [Stan](http://mc-stan.org/), which can
@@ -214,7 +213,7 @@ M <- brm(x ~ 1, data = data_df)
 And all was well.
 
 
-# If all else fails?
+### If all else fails?
 
 The following RStudio server project can be used for anyone having trouble with Stan installation.
 [![Binder](https://notebooks.gesis.org/binder/badge_logo.svg)](https://notebooks.gesis.org/binder/v2/gh/mark-andrews/hellobinder-rstan/HEAD?urlpath=rstudio)
