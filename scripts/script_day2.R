@@ -67,3 +67,44 @@ confint(M11)
 M13b <- brm(y ~ x, data = data_df)
 M14b <- brm(y ~ x, data = data_df2)
 M15b <- brm(y ~ x, data = data_df2, family = student())
+
+
+# Mixed effects models ----------------------------------------------------
+
+library(lme4)
+ggplot(sleepstudy,
+       aes(x=Days, y=Reaction)
+) + geom_point() +
+  stat_smooth(method='lm', se=F, size=0.5) +
+  facet_wrap(~Subject) +
+  theme_classic()
+
+lmer(Reaction ~ Days + (1|Subject), data = sleepstudy)
+
+M16 <- lmer(Reaction ~ Days + (Days|Subject), data = sleepstudy)
+summary(M16)
+M17b <- brm(Reaction ~ Days + (Days|Subject), data = sleepstudy)
+
+
+classroom_df <- read_csv("https://raw.githubusercontent.com/mark-andrews/barm01/master/data/classroom.csv")
+
+
+M18 <- lmer(mathscore ~ ses + (ses|schoolid) + (ses|classid), data = classroom_df)
+summary(M18)
+
+M19 <- lmer(mathscore ~ ses + (ses|schoolid) + (ses||classid), data = classroom_df)
+
+M20 <- lmer(mathscore ~ ses + (ses|schoolid) + (1|classid), data = classroom_df)
+
+M21b <- brm(mathscore ~ ses + (ses|schoolid) + (ses|classid), 
+            cores = 4,
+            data = classroom_df)
+
+M22b <- brm(mathscore ~ ses + (ses|schoolid) + (ses|classid), 
+            cores = 4,
+            prior = c(
+              set_prior("lkj(2)", class = "cor"),
+              prior(cauchy(0, 1), class = sd, coef = ses, group = classid)
+            ),
+            data = classroom_df)
+plot(M22b)
