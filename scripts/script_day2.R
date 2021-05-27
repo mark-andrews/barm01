@@ -100,11 +100,125 @@ M21b <- brm(mathscore ~ ses + (ses|schoolid) + (ses|classid),
             cores = 4,
             data = classroom_df)
 
+M22b_prior = c(
+  set_prior('lkj(2)', class = 'cor'),
+  prior(cauchy(0, 1), class = sd, coef = ses, group = classid)
+)
+
 M22b <- brm(mathscore ~ ses + (ses|schoolid) + (ses|classid), 
             cores = 4,
-            prior = c(
-              set_prior("lkj(2)", class = "cor"),
-              prior(cauchy(0, 1), class = sd, coef = ses, group = classid)
-            ),
+            prior = M22b_prior,
             data = classroom_df)
+
+prior_summary(M22b)
 plot(M22b)
+
+M23b_prior = set_prior('lkj(2)', class = 'cor')
+
+M23b <- brm(mathscore ~ ses + (ses|schoolid) + (1|classid), 
+            cores = 4,
+            prior = M23b_prior,
+            data = classroom_df)
+
+loo_compare(waic(M22b), waic(M23b))
+waic(M22b)
+waic(M23b)
+
+loo_compare(loo(M22b), loo(M23b))
+
+
+mathach_df <- read_csv("https://raw.githubusercontent.com/mark-andrews/barm01/master/data/mathachieve.csv") 
+
+
+M24 <- lmer(mathach ~ ses + sex + minority + (ses + sex + minority|school), data = mathach_df)
+M25b <- brm(mathach ~ ses + sex + minority + (ses + sex + minority|school),
+            cores = 4,
+            data = mathach_df)
+plot(M25b)
+
+science_df <- read_csv('https://raw.githubusercontent.com/mark-andrews/barm01/master/data/science.csv')
+
+
+# ordinal logistic --------------------------------------------------------
+
+wvs_df <- read_csv("https://raw.githubusercontent.com/mark-andrews/barm01/master/data/wvs.csv")
+
+wvs_df <- mutate(wvs_df, 
+                 poverty = factor(poverty, 
+                                  levels = c('Too Little', 'About Right', 'Too Much'),
+                                  ordered = T))
+
+wvs_df %>% pull(poverty) %>% class()
+wvs_df %>% pull(poverty) %>% levels()
+
+wvs_df %>% 
+  mutate(age_grp = ntile(age, 5)) %>%
+  ggplot(mapping = aes(x = poverty)) + 
+  geom_bar(position="dodge") + 
+  facet_wrap(~age_grp, nrow = 1) +
+  scale_fill_manual(values=c( "#E69F00", "#999999", "#56B4E9")) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 8, angle = -60),
+        legend.position = 'bottom',
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 8))
+
+
+M26b <- brm(poverty ~ age,
+            data = wvs_df,
+            family = cumulative(link = 'logit'),
+            cores = 4)
+
+
+M27b <- brm(like ~ PrivPub + sex + (1|school),
+            family = cumulative(link = 'logit'),
+            cores = 4,
+            data = science_df)
+
+
+# Mixed effects count models ----------------------------------------------
+
+owls <- read_csv('https://raw.githubusercontent.com/mark-andrews/barm01/master/data/owls.csv')
+
+# Take a look at some of the data
+ggplot(owls,
+       aes(x = SiblingNegotiation, fill = SexParent)
+) + geom_histogram(position = 'dodge', binwidth = 1) + facet_wrap(~FoodTreatment, nrow = 2)
+
+# There's no real reason to use normal(0, 100) as the non-default prior below.
+# But I just put it in anyway.
+
+# Mixed effects Poisson
+M28b <- brm(SiblingNegotiation ~ FoodTreatment + SexParent + offset(log(BroodSize)) + (1|Nest),
+           data = owls, 
+           cores = 4, 
+           prior = set_prior('normal(0, 100)'), 
+           family = poisson())
+
+# Mixed effects zero inflated Poisson
+M29b <- brm(SiblingNegotiation ~ FoodTreatment + SexParent + offset(log(BroodSize)) + (1|Nest),
+            data = owls, 
+            cores = 4, 
+            prior = set_prior('normal(0, 100)'), 
+            family = zero_inflated_poisson())
+
+# Mixed effects zero inflated Poisson
+# where the probability of a zero or non-zero outcome is 
+# a binary logistic regression function of two predictors
+M30b <- brm(bf(SiblingNegotiation ~ FoodTreatment + SexParent + offset(log(BroodSize)) + (1|Nest),
+                zi ~ FoodTreatment + SexParent),
+             data = owls, 
+             cores = 4, 
+             prior = set_prior('normal(0, 100)'), 
+             family = zero_inflated_poisson())
+
+
+# Mixed effects zero inflated Negative binomial 
+# where the probability of a zero or non-zero outcome is 
+# a binary logistic regression function of two predictors
+M31b <- brm(bf(SiblingNegotiation ~ FoodTreatment + SexParent + offset(log(BroodSize)) + (1|Nest),
+                 zi ~ FoodTreatment + SexParent),
+              data = owls, 
+              cores = 4, 
+              prior = set_prior('normal(0, 100)'), 
+              family = zero_inflated_negbinomial())
